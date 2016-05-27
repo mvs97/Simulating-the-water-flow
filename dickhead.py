@@ -83,6 +83,9 @@ def collideWithBlock(block, ball):
         ball.speed.y = -random.random()*0
 
 
+def liquidInfluence(c, d):
+    connectingVector = d.pos - c.pos
+    d.pos -= connectingVector * 0.02 
 
 
 class Game:
@@ -153,6 +156,10 @@ class Game:
         for c in self.balls:
             for z in self.blocks:
                 collideWithBlock(z,c)
+        for c in self.balls:
+            for d in self.balls:
+                if not c == d:
+                    liquidInfluence(c, d)
 
 
     def render(self):
