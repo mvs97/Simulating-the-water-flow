@@ -33,13 +33,11 @@ class Ball:
                 pos, speed, g, rad, k, i, color
 
     def update(self, game):
-        """Update Player state"""
         self.pos.x += self.speed.x * game.delta
         self.pos.y += self.speed.y * game.delta-0.5*self.g * game.delta * game.delta
         self.speed.y += self.g * game.delta
         self.i += 1
 
-        """Do not let Ball get out of the Game window"""
         if self.pos.x < self.rad:
             if self.speed.x < 0:
                 self.speed.x = -self.speed.x
@@ -48,26 +46,22 @@ class Ball:
             if self.speed.y < 0:
                 self.speed.y = -self.speed.y
                 self.pos.y = -self.rad
-        if self.pos.x > 600-self.rad:
+        if self.pos.x > 1000-self.rad:
             if self.speed.x > 0:
                 self.speed.x = -self.speed.x
-                self.pos.x = 600-self.rad
+                self.pos.x = 1000-self.rad
 
-        if self.pos.y > 600-self.rad:
+        if self.pos.y > 1000-self.rad:
             if self.speed.y > 0:
                 self.speed.y = -self.k*self.speed.y
-                self.pos.y = 600-self.rad
+                self.pos.y = 1000-self.rad
 
     def render(self, game):
-        """Draw Ball on the Game window"""
         pygame.draw.circle(game.screen,self.color,
                 (int(self.pos.x), int(self.pos.y)), int(self.rad))
 
-
-
-
 class Block:
-    color = (93, 124, 79)
+    color = (50, 130, 50)
     def __init__(self, x1=0, y1=0, x2=0, y2=0):
         self.x1, self.y1, self.x2, self.y2 = \
             x1, y1, x2, y2
@@ -78,26 +72,43 @@ class Block:
 
 
 def collideWithBlock(block, ball):
-    if (ball.pos.x>block.x1)and(ball.pos.x<block.x2)and(ball.pos.y>block.y1-ball.rad)and(ball.pos.y<block.y2+ball.rad):
+    blockMiddle = (block.y1 + block.y2) / 2
+    if (ball.pos.x>block.x1)and(ball.pos.x<block.x2)and(ball.pos.y>block.y1-ball.rad)and(ball.pos.y<block.y2+ball.rad)and(ball.pos.y<blockMiddle):
         ball.speed.x = 10*random.random()*(-1)**ball.i
-        ball.speed.y = -random.random()*0
+        ball.speed.y = 0
+        ball.pos.y -= 3 
+    if (ball.pos.x>block.x1)and(ball.pos.x<block.x2)and(ball.pos.y>block.y1-ball.rad)and(ball.pos.y<block.y2+ball.rad)and(ball.pos.y>blockMiddle):
+        ball.speed.x = 10*random.random()*(-1)**ball.i
+        ball.speed.y = 0
+        ball.pos.y += 3 
 
 
 def liquidInfluence(c, d):
     connectingVector = d.pos - c.pos
-    d.pos -= connectingVector * 0.02 
+    try:
+        if connectingVector.len() > 75:
+            d.speed -= (connectingVector * (1 / connectingVector.len() ** 2)) * 25
+            c.speed += (connectingVector * (1 / connectingVector.len() ** 2)) * 25
+        else:
+            d.speed += (connectingVector * (1 / connectingVector.len() ** 2)) * (30 + d.color[0]) * 3
+            c.speed -= (connectingVector * (1 / connectingVector.len() ** 2)) * (30 + c.color[0]) * 3
+    except:
+        pass
 
+    if connectingVector.len() < 80:
+        if c.color[0] <= 239:
+            c.color = (c.color[0] + 15, c.color[1], c.color[2] - 15)
+    else:
+        if c.color[0] >= 1:
+            c.color = (c.color[0] - 1, c.color[1], c.color[2] + 1)
 
 class Game:
     def tick(self):
-        """Return time in seconds since previous call
-        and limit speed of the game to 50 fps"""
         self.delta = self.clock.tick(50) / 1000.0
 
     def __init__(self):
-        """Constructor of the Game"""
         self._running = True
-        self.size = self.width, self.height = 600, 600
+        self.size = self.width, self.height = 1000, 1000
         # create main display - 640x400 window
         # try to use hardware acceleration
         self.screen = pygame.display.set_mode(self.size, pygame.HWSURFACE)
@@ -110,10 +121,8 @@ class Game:
         self.tool = 'run'
         self.ball = Ball()
         self.balls = []
-        for j in range(5000):
-            self.balls.append(Ball(Vec2(600*random.random(),random.random()*100),Vec2(0,0),  rad=random.randint(5, 15), color = (random.random()*255, random.random()*255, random.random()*255)))
-
-
+        for j in range(35):
+            self.balls.append(Ball(Vec2(1000*random.random(),random.random()*50),Vec2(0,0),  rad=40, color = (0, 0, 255)))
 
         self.block = Block()
         self.blocks = []
@@ -121,7 +130,12 @@ class Game:
         self.blocks.append(Block(200,400,450,450))
         self.blocks.append(Block(50,200,300,250))
         self.blocks.append(Block(0,500,300,540))
-        self.blocks.append(Block(400,500,550,550))
+        self.blocks.append(Block(400,550,550,600))
+        self.blocks.append(Block(800,200,1000,250))
+        self.blocks.append(Block(600,750,800,800))
+        self.blocks.append(Block(200,900,700,950))
+        self.blocks.append(Block(500,750,600,800))
+        self.blocks.append(Block(700,600,1000,650))
         #self.blocks.append(Block(30,23,90,21))
         #self.blocks.append(Block(50,10,20,200))
         #self.blocks.append(Block(120,90,67,30))
@@ -152,13 +166,16 @@ class Game:
 
         self.ball.update(self)
         for c in self.balls:
+            print("updated ball")
             c.update(self)
         for c in self.balls:
             for z in self.blocks:
+                print("updated ball/block")
                 collideWithBlock(z,c)
         for c in self.balls:
             for d in self.balls:
                 if not c == d:
+                    print("updated ball/ball")
                     liquidInfluence(c, d)
 
 
